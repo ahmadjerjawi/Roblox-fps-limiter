@@ -1,5 +1,4 @@
 @echo off
-
 setlocal enabledelayedexpansion
 
 :chooseMode
@@ -23,24 +22,39 @@ if "%choice%"=="1" (
     goto chooseMode
 )
 
-:: Set the target directory
-set "targetDirectory=%LocalAppData%\Roblox\Versions"
-
-:: Iterate through each version directory
-for /d %%A in ("%targetDirectory%\version-*") do (
-    set "clientSettingsDirectory=%%A\ClientSettings"
-    if exist "!clientSettingsDirectory!" (
-        rmdir /s /q "!clientSettingsDirectory!"
-    )
-    mkdir "!clientSettingsDirectory!"
-    set "jsonFilePath=!clientSettingsDirectory!\ClientAppSettings.json"
-    (
-        echo {
-        echo    "DFIntTaskSchedulerTargetFps": !fpsValue!
-        echo }
-    ) > "!jsonFilePath!"
+:: Verify if RobloxPlayerBeta.exe exists
+set "base_path=%LocalAppData%\Roblox\Versions"
+for /f "tokens=*" %%i in ('where /r "%base_path%" RobloxPlayerBeta.exe') do (
+    set "roblox_folder=%%~dpi"
+    goto :applySettings
 )
 
-echo Settings updated with FPS value: !fpsValue!
+:: If RobloxPlayerBeta.exe isn't found, show an error and exit
+echo Roblox Not Found.
+echo Please make sure Roblox is installed in the expected directory (AppData\Local\Roblox).
 pause
-exit
+exit /b
+
+:applySettings
+:: Set the ClientSettings directory path
+set "clientSettingsPath=%roblox_folder%ClientSettings"
+
+:: Create or clean the ClientSettings directory
+if exist "%clientSettingsPath%" (
+    rmdir /s /q "%clientSettingsPath%"
+)
+mkdir "%clientSettingsPath%"
+
+:: Write the JSON file with additional settings
+set "jsonFilePath=%clientSettingsPath%\ClientAppSettings.json"
+(
+    echo {
+    echo   "DFIntTaskSchedulerTargetFps": !fpsValue!,
+    echo   "FFlagReportFpsAndGfxQualityPercentiles": false
+    echo }
+) > "%jsonFilePath%"
+
+echo Successfully updated settings with FPS value: !fpsValue!.
+echo Kindly note that you may need to reapply these settings weekly due to Roblox updates.
+pause
+exit /b
